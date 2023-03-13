@@ -6,6 +6,7 @@ import os
 import pandas as pd
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from os.path import exists
 
 config = Config()
 
@@ -43,24 +44,28 @@ def load_file(path: str, schema = 'ZHUKOVANANYANDEXRU__STAGING', client = config
             for name in files:
                 table = 'transactions' if 'transactions' in name else 'currencies'
                 date_column = 'transaction_dt' if 'transactions' in name else 'date_update'
-                file = pd.read_csv(f"{path}/{name}")
+                
+                if exists(f"{path}/{name}"):
+                    file = pd.read_csv(f"{path}/{name}")
 
-                file[date_column] = pd.to_datetime(file[date_column])
-                actual_file = file.loc[file[date_column].dt.date == datetime.strptime(business_dt,"%Y-%m-%d").date()]
-                placeholders = ["%s",] * len(actual_file.columns)
+                    file[date_column] = pd.to_datetime(file[date_column])
+                    actual_file = file.loc[file[date_column].dt.date == datetime.strptime(business_dt,"%Y-%m-%d").date()]
+                    placeholders = ["%s",] * len(actual_file.columns)
 
-                task_logger.info(f"Loading data {name} to {schema}.{table} for {business_dt}")
-                cur.executemany(f"INSERT INTO {schema}.{table} ({', '.join(actual_file.columns)}) VALUES ({', '.join(placeholders)})", list(zip(*map(actual_file.get, actual_file))))
-                task_logger.info(f"{name} for {business_dt} is successfully uploaded to {schema}.{table}")
+                    task_logger.info(f"Loading data {name} to {schema}.{table} for {business_dt}")
+                    cur.executemany(f"INSERT INTO {schema}.{table} ({', '.join(actual_file.columns)}) VALUES ({', '.join(placeholders)})", list(zip(*map(actual_file.get, actual_file))))
+                    task_logger.info(f"{name} for {business_dt} is successfully uploaded to {schema}.{table}")
+                else:
+                    task_logger.error(f"{path}/{name} is is missing ")
 
 
 def run_sql_command_vertica(file_name_path: str, client = config.vertica_connection()) -> None:
     with open(file_name_path, 'r') as sql_script:
-        sqlCommands = sql_script.read().split(';')
+        sql_сommands = sql_script.read().split(';')
 
     with client.connection() as de_conn:
         with de_conn.cursor() as cur:
-            for command in sqlCommands:
+            for command in sql_сommands:
                 try:
                     cur.execute(command)
                 except Exception as e:
