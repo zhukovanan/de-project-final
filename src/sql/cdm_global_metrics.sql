@@ -1,6 +1,6 @@
 INSERT INTO ZHUKOVANANYANDEXRU__DWH.global_metrics
 SELECT
-     transaction_dt::date AS date_update
+     	transaction_dt::date AS date_update
 	,t.currency_code AS currency_from
 	,SUM(amount*COALESCE(c.currency_with_div,1)) AS amount_total
 	,COUNT(*) AS cnt_transactions
