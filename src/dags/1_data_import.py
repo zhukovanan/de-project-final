@@ -47,6 +47,7 @@ def load_file(path: str, schema = 'ZHUKOVANANYANDEXRU__STAGING', client = config
                 
                 if exists(f"{path}/{name}"):
                     file = pd.read_csv(f"{path}/{name}")
+                    file.close()
 
                     file[date_column] = pd.to_datetime(file[date_column])
                     actual_file = file.loc[file[date_column].dt.date == datetime.strptime(business_dt,"%Y-%m-%d").date()]
